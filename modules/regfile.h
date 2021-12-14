@@ -12,15 +12,14 @@ namespace modules {
         virtual ~RegFile() noexcept = default;
 
         virtual void tick() {
-            if (write_enable3) {
-                if (address3 == 0) {
-                    throw std::logic_error("attempt to write into reg x0");
-                }
+            if (write_enable3 && address3 != 0) {
+//                if (address3 == 0) {
+//                    throw std::logic_error("attempt to write into reg x0");
+//                }
                 regs.at(address3) = write_data3;
-            } else {
-                read_data1 = regs.at(address1);
-                read_data2 = regs.at(address2);
             }
+            read_data1 = regs.at(address1);
+            read_data2 = regs.at(address2);
         }
 
         [[nodiscard]] word_ getReadData1() const {
@@ -42,7 +41,8 @@ namespace modules {
         virtual void debug() const {
             std::cout << "RegFile: read_data1=" << read_data1 << "; read_data2=" << read_data2;
             std::cout << "; write_enable3=" << write_enable3 << "; write_data3=" << write_data3;
-            std::cout << "; address1=" << address1 << "; address2=" << address2 << "; address3=" << address3 << std::endl;
+            std::cout << "; address1=" << static_cast<word_>(address1) << "; address2=";
+            std::cout << static_cast<word_>(address2) << "; address3=" << static_cast<word_>(address3) << std::endl;
         }
 
         byte_ address1 = 0;

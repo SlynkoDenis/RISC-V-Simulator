@@ -10,6 +10,7 @@ namespace pipeline::utils {
     using modules::word_;
 
     enum class InstructionType : modules::byte_ {
+        UNKNOWN,
         RType,
         IType,
         SType,
@@ -19,31 +20,27 @@ namespace pipeline::utils {
     };
 
     inline byte_ getFunct7(word_ instruction) {
-        return static_cast<byte_>(instruction & 0xfe000000);
-    }
-
-    inline byte_ getRs1(word_ instruction) {
-        return static_cast<byte_>((instruction << 12) & 0xf8000000);
+        return static_cast<byte_>((instruction >> 25) & 0x0000007f);
     }
 
     inline byte_ getRs2(word_ instruction) {
-        return static_cast<byte_>((instruction << 7) & 0xf8000000);
+        return static_cast<byte_>((instruction >> 20) & 0x0000001f);
     }
 
-    inline byte_ getRd(word_ instruction) {
-        return static_cast<byte_>((instruction << 20) & 0xf8000000);
+    inline byte_ getRs1(word_ instruction) {
+        return static_cast<byte_>((instruction >> 15) & 0x0000001f);
     }
 
     inline byte_ getFunct3(word_ instruction) {
-        return static_cast<byte_>((instruction << 17) & 0xe0000000);
+        return static_cast<byte_>((instruction >> 12) & 0x00000007);
+    }
+
+    inline byte_ getRd(word_ instruction) {
+        return static_cast<byte_>((instruction >> 7) & 0x0000001f);
     }
 
     inline byte_ getOpcode(word_ instruction) {
-        return static_cast<byte_>((instruction << 25) & 0xfe000000);
-    }
-
-    inline byte_ getSign(word_ instruction) {
-        return static_cast<byte_>((instruction << 31) & 0x80000000);
+        return static_cast<byte_>(instruction & 0x0000007f);
     }
 
     inline InstructionType getInstructionType(byte_ opcode) {
@@ -62,7 +59,8 @@ namespace pipeline::utils {
             case 0b1101111:
                 return InstructionType::JType;
             default:
-                throw std::logic_error("invalid opcode: " + std::to_string(opcode));
+                return InstructionType::UNKNOWN;
+                //throw std::logic_error("invalid opcode: " + std::to_string(opcode));
         }
     }
 
@@ -87,6 +85,9 @@ namespace pipeline::utils {
 //        }
         inline word_ operator ()(word_ instr) {
             auto instr_t = utils::getInstructionType(utils::getOpcode(instr));
+            if (instr_t == InstructionType::UNKNOWN) {
+                return 0;
+            }
             union imm_layout {
                 word_ instr;
                 struct {

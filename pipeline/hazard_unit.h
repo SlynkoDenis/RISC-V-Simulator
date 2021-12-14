@@ -6,16 +6,22 @@
 
 namespace pipeline {
 
+    enum class BypassOptionsEncoding : modules::byte_ {
+        REG,
+        MEM,
+        WB
+    };
+
     class HazardUnit {
     public:
         virtual ~HazardUnit() noexcept = default;
 
         [[nodiscard]] modules::byte_ getRs1() const {
-            return hu_rs1;
+            return static_cast<modules::byte_>(hu_rs1);
         }
 
         [[nodiscard]] modules::byte_ getRs2() const {
-            return hu_rs2;
+            return static_cast<modules::byte_>(hu_rs2);
         }
 
         virtual void tick() {
@@ -27,8 +33,8 @@ namespace pipeline {
         }
 
     private:
-        modules::byte_ hu_rs1 = 0;
-        modules::byte_ hu_rs2 = 0;
+        BypassOptionsEncoding hu_rs1 = BypassOptionsEncoding::REG;
+        BypassOptionsEncoding hu_rs2 = BypassOptionsEncoding::REG;
     };
 }
 

@@ -34,7 +34,6 @@ namespace modules {
         }
     };
 
-    // TODO: rewrite multiplexers into one struct using ...
     template <typename T>
     struct Multiplexer2 {
         inline word_ operator()(bool control, T src1, T src2) const {
@@ -58,24 +57,24 @@ namespace modules {
         }
     };
 
-    template <typename T>
-    struct Multiplexer4 {
-        inline word_ operator()(byte_ control, T src1, T src2, T src3, T src4) const {
-            if (control == 0) {
-                return src1;
-            }
-            if (control == 1) {
-                return src2;
-            }
-            if (control == 2) {
-                return src3;
-            }
-            if (control == 3) {
-                return src4;
-            }
-            throw std::logic_error("invalid control signal");
-        }
-    };
+//    template <typename T>
+//    struct Multiplexer4 {
+//        inline word_ operator()(byte_ control, T src1, T src2, T src3, T src4) const {
+//            if (control == 0) {
+//                return src1;
+//            }
+//            if (control == 1) {
+//                return src2;
+//            }
+//            if (control == 2) {
+//                return src3;
+//            }
+//            if (control == 3) {
+//                return src4;
+//            }
+//            throw std::logic_error("invalid control signal");
+//        }
+//    };
 }
 
 #endif //RISC_V_SIMULATOR_GATES_H

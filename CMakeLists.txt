@@ -7,11 +7,17 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+string(TOLOWER ${CMAKE_BUILD_TYPE} LOWER_BUILD_TYPE)
+if(${LOWER_BUILD_TYPE} MATCHES "debug")
+    add_definitions(-DDEBUG)
+endif()
+
+
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-add_executable(cpu main.cpp)
+add_executable(cpu main.cpp modules/address_exceptions.h)
 
 target_include_directories(cpu PUBLIC module)
 

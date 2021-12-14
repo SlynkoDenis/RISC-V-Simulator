@@ -22,17 +22,50 @@ namespace modules {
         AND
     };
 
-    inline std::ostream& operator<<(std::ostream& os, ALUControl alu_control) {
-        os << std::hex << static_cast<char>(alu_control);
+    inline std::ostream& operator<<(std::ostream& os, const ALUControl& alu_control) {
+        switch (alu_control) {
+            case ALUControl::NOP:
+                os << "NOP";
+                break;
+            case ALUControl::ADD:
+                os << "ADD";
+                break;
+            case ALUControl::SUB:
+                os << "SUB";
+                break;
+            case ALUControl::SLL:
+                os << "SLL";
+                break;
+            case ALUControl::SLT:
+                os << "SLT";
+                break;
+            case ALUControl::SLTU:
+                os << "SLTU";
+                break;
+            case ALUControl::XOR:
+                os << "XOR";
+                break;
+            case ALUControl::SRL:
+                os << "SRL";
+                break;
+            case ALUControl::SRA:
+                os << "SRA";
+                break;
+            case ALUControl::OR:
+                os << "OR";
+                break;
+            case ALUControl::AND:
+                os << "AND";
+                break;
+        }
         return os;
     }
 
-    class ALU {
-    public:
-        virtual ~ALU() noexcept = default;
-
-        virtual word_ executeOperation() {
+    struct ALU {
+        inline word_ operator()(ALUControl control_signal, word_ src_a, word_ src_b) {
             switch (control_signal) {
+                case ALUControl::NOP:
+                    return 0;
                 case ALUControl::ADD:
                     return src_a + src_b;
                 case ALUControl::SUB:
@@ -54,20 +87,10 @@ namespace modules {
                 case ALUControl::SLTU:
                     return (src_a < src_b);
                 default:
-                    throw std::logic_error("unknown control signal");
+                    throw std::logic_error("unknown control signal: " +\
+                        std::to_string(static_cast<byte_>(control_signal)));
             }
         }
-
-        [[nodiscard]] word_ getResult() const {
-            return result;
-        }
-
-        ALUControl control_signal = ALUControl::NOP;
-        word_ src_a = 0;
-        word_ src_b = 0;
-
-    private:
-        word_ result = 0;
     };
 }
 

@@ -5,6 +5,7 @@
 #include <array>
 #include <iostream>
 #include <vector>
+#include "address_exceptions.h"
 #include "common.h"
 
 
@@ -20,23 +21,25 @@ namespace modules {
 
         virtual ~DataMemUnit() noexcept = default;
 
+        // TODO: add alignment check
         virtual void tick() {
             if (write_enable) {
-                memory.at(address) = write_data;
-                // TODO: modify read_data after write?
+                if (address > capacity * sizeof(word_)) {
+                    throw InvalidAddressException("data write overflow - address=" +\
+                                                  std::to_string(address));
+                }
+                *reinterpret_cast<word_ *>(reinterpret_cast<byte_ *>(memory.data()) + address) = write_data;
+                // read_data modification is useless, as we don't read after write
             } else {
-                read_data = memory.at(address);
+                read_data = getData();
             }
         }
 
-        [[nodiscard]] word_ getData() const {
-            return memory.at(address);
-        }
-
-        void setNewSignals(bool we, word_ addr, word_ wd) {
-            write_enable = we;
-            address = addr;
-            write_data = wd;
+        [[nodiscard]] word_ getData() {
+            if (address > capacity * sizeof(word_)) {
+                throw InvalidAddressException("data read overflow - address=" + std::to_string(address));
+            }
+            return *reinterpret_cast<word_ *>(reinterpret_cast<byte_ *>(memory.data()) + address);
         }
 
         virtual void debug() const {

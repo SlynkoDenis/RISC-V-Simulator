@@ -7,6 +7,7 @@
 namespace modules {
 
     enum class CmpControl : byte_ {
+        NOP,
         EQ,
         NE,
         LT,
@@ -16,7 +17,29 @@ namespace modules {
     };
 
     inline std::ostream& operator<<(std::ostream& os, const CmpControl& cmp_control) {
-        os << static_cast<byte_>(cmp_control);
+        switch (cmp_control) {
+            case CmpControl::NOP:
+                os << "NOP";
+                break;
+            case CmpControl::EQ:
+                os << "EQ";
+                break;
+            case CmpControl::NE:
+                os << "NE";
+                break;
+            case CmpControl::LT:
+                os << "LT";
+                break;
+            case CmpControl::GE:
+                os << "GE";
+                break;
+            case CmpControl::LTU:
+                os << "LTU";
+                break;
+            case CmpControl::GEU:
+                os << "GEU";
+                break;
+        }
         return os;
     }
 
@@ -24,6 +47,8 @@ namespace modules {
     struct Cmp {
         inline bool operator()(CmpControl control, T lhs, T rhs) const {
             switch (control) {
+                case CmpControl::NOP:
+                    return false;
                 case CmpControl::EQ:
                     return lhs == rhs;
                 case CmpControl::NE:

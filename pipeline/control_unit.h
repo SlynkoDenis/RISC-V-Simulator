@@ -4,6 +4,7 @@
 #include <tuple>
 #include "instruction.h"
 #include "../modules/alu.h"
+#include "../modules/cmp.h"
 #include "../modules/common.h"
 
 
@@ -16,10 +17,21 @@ namespace pipeline {
         virtual ~ControlUnit() noexcept = default;
 
         [[nodiscard]] auto getControlSignals() {
-            return std::make_tuple(mem_to_reg, brn_cond, jmp_cond, cmp_cond, alu_src2, alu_op);
+            return std::make_tuple(wb_we, mem_we, mem_to_reg, brn_cond,
+                                   jmp_cond, cmp_control, alu_src2, alu_op);
         }
 
         virtual void tick() {
+            if ((opcode == 0b0100011 && funct3 == 0b010) ||
+                (opcode == 0b1100011) ||
+                (opcode == 0b1110011)) {
+                wb_we = false;
+            } else {
+                wb_we = true;
+            }
+
+            mem_we = (opcode == 0b0100011 && funct3 == 0b010);
+
             if (opcode == 0b0010011) {
                 alu_src2 = true;
             } else {
@@ -69,6 +81,8 @@ namespace pipeline {
                     default:
                         throw std::logic_error("invalid funct3: " + std::to_string(funct3));
                 }
+            } else {
+                alu_op = ALUControl::NOP;
             }
 
             brn_cond = (opcode == 0b1100011);
@@ -81,13 +95,40 @@ namespace pipeline {
 
             mem_to_reg = (opcode != 0b0000011);
 
-            cmp_cond = (opcode == 0b1100011);
+            if (opcode == 0b1100011) {
+                switch (funct3) {
+                    case 0:
+                        cmp_control = modules::CmpControl::EQ;
+                        break;
+                    case 0b001:
+                        cmp_control = modules::CmpControl::NE;
+                        break;
+                    case 0b100:
+                        cmp_control = modules::CmpControl::LT;
+                        break;
+                    case 0b101:
+                        cmp_control = modules::CmpControl::GE;
+                        break;
+                    case 0b110:
+                        cmp_control = modules::CmpControl::LTU;
+                        break;
+                    case 0b111:
+                        cmp_control = modules::CmpControl::GEU;
+                        break;
+                    default:
+                        throw std::logic_error("invalid funct3 for b instruction: " + std::to_string(funct3));
+                }
+            } else {
+                cmp_control = modules::CmpControl::NOP;
+            }
         }
 
         virtual void debug() const {
-            std::cout << "ControlUnit: opcode=" << opcode << "; funct3=" << funct3 << "; funct7=" << funct7;
+            std::cout << "ControlUnit: opcode=" << static_cast<modules::word_>(opcode) << "; funct3=";
+            std::cout << static_cast<modules::word_>(funct3) << "; funct7=" << static_cast<modules::word_>(funct7);
+            std::cout << "; wb_we=" << wb_we;
             std::cout << "; mem_to_reg=" << mem_to_reg << "; brn_cond=" << brn_cond << "; jmp_cond=" << jmp_cond;
-            std::cout << "; cmp_cond=" << cmp_cond << "; alu_src2=" << alu_src2 << "; alu_op=" << alu_op << std::endl;
+            std::cout << "; cmp_cond=" << cmp_control << "; alu_src2=" << alu_src2 << "; alu_op=" << alu_op << std::endl;
         }
 
         modules::byte_ opcode = 0;
@@ -95,11 +136,12 @@ namespace pipeline {
         modules::byte_ funct7 = 0;
 
     private:
+        bool wb_we = false;
+        bool mem_we = false;
         bool mem_to_reg = false;
         bool brn_cond = false;
         bool jmp_cond = false;
-        // TODO: is the type right?
-        bool cmp_cond = false;
+        modules::CmpControl cmp_control;
         bool alu_src2 = false;
         ALUControl alu_op = ALUControl::NOP;
     };
