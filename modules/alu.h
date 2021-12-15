@@ -62,7 +62,7 @@ namespace modules {
     }
 
     struct ALU {
-        inline word_ operator()(ALUControl control_signal, word_ src_a, word_ src_b) {
+        constexpr inline word_ operator()(ALUControl control_signal, word_ src_a, word_ src_b) {
             switch (control_signal) {
                 case ALUControl::NOP:
                     return 0;
