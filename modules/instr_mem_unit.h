@@ -12,7 +12,13 @@ namespace modules {
     class InstrMemUnit {
     public:
         explicit InstrMemUnit(const std::vector<word_>& instructions, word_ start_address) : address(0) {
-            std::copy(instructions.cbegin() + start_address, instructions.cend(), memory.begin());
+            if (start_address % sizeof(word_) != 0) {
+                throw std::logic_error("start_address: " +\
+                                       std::to_string(start_address) +\
+                                       " % " + std::to_string(sizeof(word_)) + " != 0");
+            }
+            std::copy(instructions.cbegin(), instructions.cend(),
+                      memory.begin() + start_address / sizeof(word_));
             end_of_section = start_address + instructions.size() * sizeof(word_);
         }
 

@@ -8,7 +8,6 @@ target_sources(pipeline PUBLIC
         instruction.h
         pipeline.h
         pipeline.cpp
-        we_gen.h
         )
 
 target_include_directories(pipeline PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

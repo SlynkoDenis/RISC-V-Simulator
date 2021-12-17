@@ -2,6 +2,7 @@
 #define RISC_V_SIMULATOR_PIPELINE_H
 
 #include <array>
+#include <unordered_map>
 #include <vector>
 #include "control_unit.h"
 #include "hazard_unit.h"
@@ -13,6 +14,7 @@
 #include "../modules/register.h"
 #include "../modules/regfile.h"
 
+#define LOG_FIELD(obj, field) os << #field << "=" << std::hex << obj.field << ", "
 
 namespace pipeline {
 
@@ -30,7 +32,9 @@ namespace pipeline {
     };
 
     inline std::ostream& operator<<(std::ostream& os, const DecodeState& decode_state) {
-        os << std::hex << decode_state.v_de << ", " << decode_state.pc_de << ", " << decode_state.instr;
+        LOG_FIELD(decode_state, v_de);
+        LOG_FIELD(decode_state, pc_de);
+        LOG_FIELD(decode_state, instr);
         return os;
     }
 
@@ -65,12 +69,19 @@ namespace pipeline {
     };
 
     inline std::ostream& operator<<(std::ostream& os, const ExecuteState& execute_state) {
-        os << std::hex << execute_state.v_de << ", " << execute_state.alu_op << ", " << execute_state.alu_src2;
-        os << ", " << execute_state.mem_to_reg << ", " << execute_state.wb_we << ", " << execute_state.mem_we;
-        os << ", " << execute_state.cmp_control << ", ";
-        os << execute_state.brn_cond << ", " << execute_state.jmp_cond << ", " << execute_state.data1;
-        os << ", " << execute_state.data2 << ", " << execute_state.pc_de;
-        os << ", " << execute_state.instr;
+        LOG_FIELD(execute_state, alu_op);
+        LOG_FIELD(execute_state, alu_src2);
+        LOG_FIELD(execute_state, mem_to_reg);
+        LOG_FIELD(execute_state, wb_we);
+        LOG_FIELD(execute_state, mem_we);
+        LOG_FIELD(execute_state, cmp_control);
+        LOG_FIELD(execute_state, brn_cond);
+        LOG_FIELD(execute_state, jmp_cond);
+        LOG_FIELD(execute_state, v_de);
+        LOG_FIELD(execute_state, data1);
+        LOG_FIELD(execute_state, data2);
+        LOG_FIELD(execute_state, pc_de);
+        LOG_FIELD(execute_state, instr);
         return os;
     }
 
@@ -91,8 +102,12 @@ namespace pipeline {
     };
 
     inline std::ostream& operator<<(std::ostream& os, const MemoryState& memory_state) {
-        os << std::hex << memory_state.mem_we << ", " << memory_state.mem_to_reg << ", " << memory_state.wb_we;
-        os << ", " << memory_state.write_data << ", " << memory_state.alu_res << ", " << memory_state.wb_a;
+        LOG_FIELD(memory_state, mem_we);
+        LOG_FIELD(memory_state, mem_to_reg);
+        LOG_FIELD(memory_state, wb_we);
+        LOG_FIELD(memory_state, write_data);
+        LOG_FIELD(memory_state, alu_res);
+        LOG_FIELD(memory_state, wb_a);
         return os;
     }
 
@@ -107,9 +122,12 @@ namespace pipeline {
     };
 
     inline std::ostream& operator<<(std::ostream& os, const WriteBackState& wb_state) {
-        os << std::hex << wb_state.wb_we << ", " << wb_state.wb_d << ", " << static_cast<word_>(wb_state.wb_a);
+        LOG_FIELD(wb_state, wb_we);
+        LOG_FIELD(wb_state, wb_d);
+        os << "wb_a" << "=" << std::hex << static_cast<word_>(wb_state.wb_a);
         return os;
     }
+#undef LOG_FIELD
 
     class Pipeline {
     public:
@@ -120,14 +138,29 @@ namespace pipeline {
 
         Pipeline(const std::vector<word_>& instructions,
                  word_ start_instr_address,
-                 const std::vector<word_>& data) : instr_mem_unit(instructions, start_instr_address),
-                                                   data_mem_unit(data) {};
+                 const std::unordered_map<word_, word_>& data) : instr_mem_unit(instructions, start_instr_address),
+                                                                 data_mem_unit(data) {
+            std::cout << std::hex;
+        };
 
         virtual ~Pipeline() noexcept = default;
 
         virtual void setProgramCounter(word_ pc);
 
         virtual void tick();
+
+        virtual word_ getRegister(word_ addr) const {
+            return reg_file.getRegDirectly(addr);
+        };
+
+        virtual word_ getDataWord(word_ addr) {
+            word_ res = 0;
+            auto current_addr = data_mem_unit.address;
+            data_mem_unit.address = addr;
+            res = data_mem_unit.getData();
+            data_mem_unit.address = current_addr;
+            return res;
+        }
 
         virtual void debug();
 

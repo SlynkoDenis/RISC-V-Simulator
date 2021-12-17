@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <iostream>
-#include <vector>
+#include <unordered_map>
 #include "address_exceptions.h"
 #include "common.h"
 
@@ -15,8 +15,10 @@ namespace modules {
     public:
         DataMemUnit() = default;
 
-        explicit DataMemUnit(const std::vector<word_>& data) : address(0) {
-            std::copy(data.cbegin(), data.cend(), memory.begin());
+        explicit DataMemUnit(const std::unordered_map<word_, word_>& data) : address(0) {
+            for (const auto& [key, value] : data) {
+                *reinterpret_cast<word_ *>(reinterpret_cast<byte_ *>(memory.data()) + key) = value;
+            }
         }
 
         virtual ~DataMemUnit() noexcept = default;
@@ -29,6 +31,10 @@ namespace modules {
                                                   std::to_string(address));
                 }
                 *reinterpret_cast<word_ *>(reinterpret_cast<byte_ *>(memory.data()) + address) = write_data;
+#ifdef DEBUG
+                std::cout << "============== writing value " << write_data << " on address ";
+                std::cout << std::hex << static_cast<word_>(address) << std::endl;
+#endif
                 // read_data modification is useless, as we don't read after write
             } else {
                 read_data = getData();

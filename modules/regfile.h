@@ -13,6 +13,11 @@ namespace modules {
 
         virtual void tick() {
             if (write_enable3 && address3 != 0) {
+#ifdef DEBUG
+                std::cout << "======================== writing into reg ";
+                std::cout << std::hex << static_cast<word_>(address3);
+                std::cout << " value " << write_data3 << std::endl;
+#endif
 //                if (address3 == 0) {
 //                    throw std::logic_error("attempt to write into reg x0");
 //                }
@@ -28,6 +33,11 @@ namespace modules {
 
         [[nodiscard]] word_ getReadData2() const {
             return read_data2;
+        }
+
+        // Only for testing
+        [[nodiscard]] word_ getRegDirectly(word_ addr) const {
+            return regs.at(addr);
         }
 
         void setNewSignals(byte_ addr1, byte_ addr2, byte_ addr3, bool we3, word_ wd3) {
@@ -53,7 +63,7 @@ namespace modules {
 
     private:
         static constexpr size_t number_of_regs = 32;
-        std::array<word_, number_of_regs> regs;
+        std::array<word_, number_of_regs> regs = {0};
         word_ read_data1 = 0;
         word_ read_data2 = 0;
     };

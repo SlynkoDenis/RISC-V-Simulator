@@ -62,8 +62,8 @@ namespace pipeline {
         reg_file.setNewSignals(utils::getRs1(decode_stage_instr.instr),
                                utils::getRs2(decode_stage_instr.instr),
                                write_back_register.getCurrent().wb_a,
-                               write_back_register.getCurrent().wb_d,
-                               write_back_register.getCurrent().wb_we);
+                               write_back_register.getCurrent().wb_we,
+                               write_back_register.getCurrent().wb_d);
         reg_file.tick();
 
         control_unit.opcode = utils::getOpcode(decode_stage_instr.instr);
@@ -95,13 +95,13 @@ namespace pipeline {
                                                    bp_mem,
                                                    write_back_register.getCurrent().wb_d);
         auto rs2v = modules::Multiplexer3<word_>{}(hazard_unit.getRs2(),
-                                                   exec_reg_cur.data1,
+                                                   exec_reg_cur.data2,
                                                    bp_mem,
                                                    write_back_register.getCurrent().wb_d);
         pc_disp = utils::ImmediateExtensionBlock{}(exec_reg_cur.instr);
         auto src_b = modules::Multiplexer2<word_>{}(exec_reg_cur.alu_src2,
-                                                   rs2v,
-                                                   pc_disp);
+                                                    rs2v,
+                                                    pc_disp);
         bool cmp_res = modules::Cmp<word_>{}(exec_reg_cur.cmp_control,
                                              src_a,
                                              rs2v);
@@ -121,7 +121,7 @@ namespace pipeline {
 
     void Pipeline::doMemory() {
         auto mem_reg_cur = memory_register.getCurrent();
-        if (!mem_reg_cur.mem_to_reg) {
+        if (!mem_reg_cur.mem_to_reg || mem_reg_cur.mem_we) {
             data_mem_unit.write_enable = mem_reg_cur.mem_we;
             data_mem_unit.address = mem_reg_cur.alu_res;
             data_mem_unit.write_data = mem_reg_cur.write_data;

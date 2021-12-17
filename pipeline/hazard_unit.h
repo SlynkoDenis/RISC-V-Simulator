@@ -12,6 +12,17 @@ namespace pipeline {
         WB
     };
 
+    std::ostream& operator<<(std::ostream& os, const BypassOptionsEncoding& enc) {
+        if (enc == BypassOptionsEncoding::REG) {
+            os << "REG";
+        } else if (enc == BypassOptionsEncoding::MEM) {
+            os << "MEM";
+        } else {
+            os << "WB";
+        }
+        return os;
+    }
+
     class HazardUnit {
     public:
         virtual ~HazardUnit() noexcept = default;
@@ -29,7 +40,7 @@ namespace pipeline {
         }
 
         virtual void debug() const {
-
+            std::cout << "HazardUnit: hu_rs1=" << hu_rs1 << ", hu_rs2=" << hu_rs2 << std::endl;
         }
 
     private:

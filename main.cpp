@@ -4,24 +4,26 @@
 
 int main() {
     std::vector<pipeline::word_> instructions = {
-        0x00850513,     // addi a0, a0, 8
-        0x00850513,
-        0x00850513,
-        0x00850513,
-        0x00850513,
-        0x00000013,     // addi x0, x0, 0 == nop
-        0x00000013,
-        0x00000013,
-        0x00000013,
-        0x00000013,
-        0x00000013,
-        0x00000013,
-        0x0000006f
+            0x00402503,     // lw a0
+            0x00000013,     // addi x0, x0, 0 == nop
+            0x00000013,
+            0x00000013,
+            0x00000013,
+            0x00000013,
+            0x00000013,
+            0x00000013,
+            0x00000013,
+            0x00000013,
+            0x0000006f      // jr 0
     };
-    constexpr uint32_t start_pc = 8;
-    pipeline::Pipeline cpu{instructions, start_pc};
-    cpu.setProgramCounter(start_pc);
+    const pipeline::word_ magic_number = 42;
+    std::unordered_map<pipeline::word_, pipeline::word_> data = {
+            {4, magic_number}
+    };
 
+    const pipeline::word_ start_inst_addr = 16;
+    pipeline::Pipeline cpu{instructions, start_inst_addr, data};
+    cpu.setProgramCounter(start_inst_addr);
     try {
         while (true) {
             cpu.tick();

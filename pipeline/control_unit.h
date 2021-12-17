@@ -32,13 +32,16 @@ namespace pipeline {
 
             mem_we = (opcode == 0b0100011 && funct3 == 0b010);
 
-            if (opcode == 0b0010011) {
+            auto instr_type = utils::getInstructionType(opcode);
+            if (instr_type == utils::InstructionType::IType ||
+                instr_type == utils::InstructionType::SType ||
+                opcode == 0b0010111) {
                 alu_src2 = true;
             } else {
                 alu_src2 = false;
             }
 
-            if (opcode == 0b0010011 || opcode == 0b110011) {
+            if (opcode == 0b0110011) {
                 switch (funct3) {
                     case 0b000:
                         if (funct7 == 0) {
@@ -81,6 +84,31 @@ namespace pipeline {
                     default:
                         throw std::logic_error("invalid funct3: " + std::to_string(funct3));
                 }
+            } else if (opcode == 0b0010011) {
+                switch (funct3) {
+                    case 0b000:
+                        alu_op = ALUControl::ADD;
+                        break;
+                    case 0b010:
+                        alu_op = ALUControl::SLT;
+                        break;
+                    case 0b011:
+                        alu_op = ALUControl::SLTU;
+                        break;
+                    case 0b100:
+                        alu_op = ALUControl::XOR;
+                        break;
+                    case 0b110:
+                        alu_op = ALUControl::OR;
+                        break;
+                    case 0b111:
+                        alu_op = ALUControl::AND;
+                        break;
+                    default:
+                        throw std::logic_error("invalid funct3: " + std::to_string(funct3));
+                }
+            } else if (opcode == 0b0010111 || opcode == 0b0000011 || opcode == 0b0100011) {
+                alu_op = ALUControl::ADD;
             } else {
                 alu_op = ALUControl::NOP;
             }
