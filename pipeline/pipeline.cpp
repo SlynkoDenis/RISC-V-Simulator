@@ -19,10 +19,12 @@ namespace pipeline {
 
         tickRegisters();
         program_counter.tick();
+        hazardUnitTick();
 
         debug();
     }
 
+#ifdef DEBUG
     void Pipeline::debug() {
         DEBUG_LOG(program_counter);
         DEBUG_LOG(decode_register);
@@ -30,19 +32,24 @@ namespace pipeline {
         DEBUG_LOG(memory_register);
         DEBUG_LOG(write_back_register);
 
+        std::cout << "pc_redirect == " << pc_r << std::endl;
+        std::cout << "hu_rs1 == " << hu_rs1 << std::endl;
+        std::cout << "hu_rs2 == " << hu_rs2 << std::endl;
+
         DEBUG_LOG(instr_mem_unit);
         DEBUG_LOG(data_mem_unit);
         DEBUG_LOG(reg_file);
         DEBUG_LOG(control_unit);
-        DEBUG_LOG(hazard_unit);
 
-#ifdef DEBUG
+        printRegisters();
+
         std::cout << "\n\n";
-#endif
     }
+#endif
 
     void Pipeline::doFetch() {
-        if (program_counter.getCurrent() >= instr_mem_unit.getEndOfInstructionSection()) {
+        if (program_counter.getCurrent() >= instr_mem_unit.getEndOfInstructionSection() &&
+            !(execute_register.next.jmp_cond || execute_register.next.brn_cond)) {
             throw std::logic_error("out_of_instr_section");
         }
         instr_mem_unit.address = program_counter.getCurrent();
@@ -51,6 +58,10 @@ namespace pipeline {
                                                        execute_register.getCurrent().pc_de);
         auto summand2 = modules::Multiplexer2<word_>{}(pc_r, 4, pc_disp);
         program_counter.next = modules::Add<word_>{}(summand1, summand2);
+        if (program_counter.next % 4 != 0) {
+            throw modules::AlignmentException("pc is not aligned: pc_next == " +\
+                                              std::to_string(program_counter.next));
+        }
         // update next register
         decode_register.next.instr = instr_mem_unit.getData();
         decode_register.next.pc_de = program_counter.getCurrent();
@@ -90,30 +101,44 @@ namespace pipeline {
 
     void Pipeline::doExecute() {
         auto exec_reg_cur = execute_register.getCurrent();
-        auto src_a = modules::Multiplexer3<word_>{}(hazard_unit.getRs1(),
-                                                   exec_reg_cur.data1,
-                                                   bp_mem,
-                                                   write_back_register.getCurrent().wb_d);
-        auto rs2v = modules::Multiplexer3<word_>{}(hazard_unit.getRs2(),
+        auto src_a = modules::Multiplexer3<word_>{}(static_cast<byte_>(hu_rs1),
+                                                    exec_reg_cur.data1,
+                                                    bp_mem,
+                                                    write_back_register.getCurrent().wb_d);
+        auto rs2v = modules::Multiplexer3<word_>{}(static_cast<byte_>(hu_rs2),
                                                    exec_reg_cur.data2,
                                                    bp_mem,
                                                    write_back_register.getCurrent().wb_d);
         pc_disp = utils::ImmediateExtensionBlock{}(exec_reg_cur.instr);
+#ifdef DEBUG
+        std::cout << "======================== imm == " << pc_disp << std::endl;
+#endif
         auto src_b = modules::Multiplexer2<word_>{}(exec_reg_cur.alu_src2,
                                                     rs2v,
                                                     pc_disp);
         bool cmp_res = modules::Cmp<word_>{}(exec_reg_cur.cmp_control,
                                              src_a,
                                              rs2v);
-        pc_r = modules::And<bool>{}(cmp_res,
-                                modules::Or<bool>{}(exec_reg_cur.brn_cond, exec_reg_cur.jmp_cond));
+        // TODO: write jal logic: rd = pc + 4
+        if (exec_reg_cur.jmp_cond || exec_reg_cur.brn_cond) {
+            std::cout << "###################################################################\n";
+            std::cout << "cmp_res = " << cmp_res << std::endl;
+            std::cout << "jmp_cond = " << exec_reg_cur.jmp_cond << std::endl;
+            std::cout << "brn_cond = " << exec_reg_cur.brn_cond << std::endl;
+            std::cout << "###################################################################\n";
+        }
+        pc_r = modules::Or<bool>{}(exec_reg_cur.jmp_cond,
+                                   modules::And<bool>{}(cmp_res, exec_reg_cur.brn_cond));
         // update next registers
         memory_register.next.mem_we = exec_reg_cur.mem_we && (!exec_reg_cur.v_de);
         memory_register.next.mem_to_reg = exec_reg_cur.mem_to_reg;
         memory_register.next.wb_we = exec_reg_cur.wb_we && (!exec_reg_cur.v_de);
-        // TODO: is it right? (note the errata 2)
         memory_register.next.write_data = rs2v;
         memory_register.next.alu_res = modules::ALU{}(exec_reg_cur.alu_op, src_a, src_b);
+#ifdef DEBUG
+        std::cout << "======================== ALU(" << exec_reg_cur.alu_op;
+        std::cout << ", " << src_a << ", " << src_b << ") == " << memory_register.next.alu_res << std::endl;
+#endif
         memory_register.next.wb_a = utils::getRd(exec_reg_cur.instr);
 
         decode_register.next.v_de = pc_r;
@@ -138,6 +163,66 @@ namespace pipeline {
 
     void Pipeline::doWriteBack() {}
 
+    void Pipeline::hazardUnitTick() {
+        if (pc_r) {
+            std::cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n";
+            execute_register.clear();
+            decode_register.clear();
+            return;
+        }
+
+        auto execute_stage_instr = execute_register.getCurrent().instr;
+        auto opcode = utils::getOpcode(execute_stage_instr);
+        auto rs1 = utils::getRs1(execute_stage_instr);
+        auto rs2 = utils::getRs2(execute_stage_instr);
+        auto mem_wb_a = memory_register.getCurrent().wb_a;
+
+        std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\n";
+        std::cout << "instr = " << execute_stage_instr << ", opcode = " << static_cast<word_>(opcode);
+        std::cout << ", rs1 = " << static_cast<word_>(rs1);
+        std::cout << ", rs2 = " << static_cast<word_>(rs2);
+        std::cout << ", mem_to_reg = " << memory_register.getCurrent().mem_to_reg;
+        std::cout << ", mem_wb_a = " << static_cast<word_>(mem_wb_a) << ", wb_wb_a = ";
+        std::cout << static_cast<word_>(write_back_register.getCurrent().wb_a) << std::endl;
+        std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\n";
+
+        if (rs1 != 0) {
+            if (rs1 == mem_wb_a) {
+                hu_rs1 = BypassOptionsEncoding::MEM;
+            } else if (rs1 == write_back_register.getCurrent().wb_a) {
+                hu_rs1 = BypassOptionsEncoding::WB;
+            } else {
+                hu_rs1 = BypassOptionsEncoding::REG;
+            }
+        } else {
+            hu_rs1 = BypassOptionsEncoding::REG;
+        }
+
+        if (rs2 != 0) {
+            if (rs2 == mem_wb_a) {
+                if (memory_register.getCurrent().mem_to_reg) {
+                    hu_rs2 = BypassOptionsEncoding::MEM;
+                } else {
+                    throw std::logic_error("TBD: write SW logic when execute & memory hazard");
+                }
+            } else if (rs2 == write_back_register.getCurrent().wb_a) {
+                hu_rs2 = BypassOptionsEncoding::WB;
+            } else if (opcode == 0b0000011 &&
+                       (rs1 == mem_wb_a || rs2 == mem_wb_a)) {
+                decode_register.enable_flag = false;
+                execute_register.enable_flag = false;
+            } else {
+                hu_rs2 = BypassOptionsEncoding::REG;
+                decode_register.enable_flag = true;
+                execute_register.enable_flag = true;
+            }
+        } else {
+            hu_rs2 = BypassOptionsEncoding::REG;
+            decode_register.enable_flag = true;
+            execute_register.enable_flag = true;
+        }
+    }
+
     void Pipeline::tickRegisters() {
         decode_register.tick();
         execute_register.tick();
@@ -147,7 +232,5 @@ namespace pipeline {
 }
 
 /*
- * Errata2: data для записи в память должна выбираться после хазарда и со второго регистра
- * Errata4: для jr нужно до wb протолкнуть pc+4
  * Errata5: для ret нужно поменять fetch, понятно как
  */

@@ -59,6 +59,8 @@ namespace modules {
                 case CmpControl::GE:
                 case CmpControl::GEU:
                     return lhs >= rhs;
+                default:
+                    throw std::logic_error("unknown compare operation");
             }
         }
     };

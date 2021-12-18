@@ -4,7 +4,6 @@
 #include <cstdint>
 
 #ifdef DEBUG
-//#define DEBUG_LOG(obj) std::cout << __FILE__ << ":" << std::dec << __LINE__ << std::hex << ": "; obj.debug()
 #define DEBUG_LOG(obj) std::cout << std::dec << __LINE__ << std::hex << ": "; obj.debug()
 #else
 #define DEBUG_LOG(obj)

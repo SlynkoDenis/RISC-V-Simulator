@@ -122,10 +122,11 @@ namespace pipeline::utils {
                     word_ sign : 1;
                 } __attribute__((packed)) fb;
                 struct {
+                    word_ zero : 1;
                     word_ imm0 : 4;
                     word_ imm1 : 6;
                     word_ imm2 : 1;
-                    word_ se : 21;
+                    word_ se : 20;
                 } __attribute__((packed)) db;
                 struct {
                     word_ pad0 : 12;
@@ -135,10 +136,11 @@ namespace pipeline::utils {
                     word_ sign : 1;
                 } __attribute__((packed)) fj;
                 struct {
+                    word_ zero : 1;
                     word_ imm0 : 10;
                     word_ imm1 : 1;
                     word_ imm2 : 8;
-                    word_ se : 13;
+                    word_ se : 12;
                 } __attribute__((packed)) dj;
                 struct {
                     word_ pad : 12;

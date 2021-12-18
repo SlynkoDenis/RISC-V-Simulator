@@ -18,9 +18,6 @@ namespace modules {
                 std::cout << std::hex << static_cast<word_>(address3);
                 std::cout << " value " << write_data3 << std::endl;
 #endif
-//                if (address3 == 0) {
-//                    throw std::logic_error("attempt to write into reg x0");
-//                }
                 regs.at(address3) = write_data3;
             }
             read_data1 = regs.at(address1);
@@ -53,6 +50,14 @@ namespace modules {
             std::cout << "; write_enable3=" << write_enable3 << "; write_data3=" << write_data3;
             std::cout << "; address1=" << static_cast<word_>(address1) << "; address2=";
             std::cout << static_cast<word_>(address2) << "; address3=" << static_cast<word_>(address3) << std::endl;
+        }
+
+        virtual void printRegisters() const {
+            std::cout << "Current registers file state:" << std::endl;
+            for (size_t i = 0; i < number_of_regs; ++i) {
+                std::cout << "x" << i << " == " << regs[i] << std::endl;
+            }
+            std::cout << std::endl;
         }
 
         byte_ address1 = 0;

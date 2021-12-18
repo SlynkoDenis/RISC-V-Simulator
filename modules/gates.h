@@ -47,7 +47,7 @@ namespace modules {
             if (control == 2) {
                 return src3;
             }
-            throw std::logic_error("invalid control signal");
+            throw std::logic_error("invalid control signal: " + std::to_string(control));
         }
     };
 }

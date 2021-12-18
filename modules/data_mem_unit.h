@@ -23,12 +23,15 @@ namespace modules {
 
         virtual ~DataMemUnit() noexcept = default;
 
-        // TODO: add alignment check
         virtual void tick() {
             if (write_enable) {
                 if (address > capacity * sizeof(word_)) {
                     throw InvalidAddressException("data write overflow - address=" +\
                                                   std::to_string(address));
+                }
+                if (address % sizeof(word_)) {
+                    throw AlignmentException("data write invalid alignment - address="+\
+                                             std::to_string(address));
                 }
                 *reinterpret_cast<word_ *>(reinterpret_cast<byte_ *>(memory.data()) + address) = write_data;
 #ifdef DEBUG
@@ -44,6 +47,10 @@ namespace modules {
         [[nodiscard]] word_ getData() {
             if (address > capacity * sizeof(word_)) {
                 throw InvalidAddressException("data read overflow - address=" + std::to_string(address));
+            }
+            if (address % sizeof(word_)) {
+                throw AlignmentException("data write invalid alignment - address="+\
+                                             std::to_string(address));
             }
             return *reinterpret_cast<word_ *>(reinterpret_cast<byte_ *>(memory.data()) + address);
         }

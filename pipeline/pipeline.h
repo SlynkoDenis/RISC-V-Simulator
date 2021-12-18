@@ -149,7 +149,8 @@ namespace pipeline {
 
         virtual void tick();
 
-        virtual word_ getRegister(word_ addr) const {
+#ifdef DEBUG
+        [[nodiscard]] virtual word_ getRegister(word_ addr) const {
             return reg_file.getRegDirectly(addr);
         };
 
@@ -162,7 +163,12 @@ namespace pipeline {
             return res;
         }
 
+        virtual void printRegisters() const {
+            reg_file.printRegisters();
+        }
+
         virtual void debug();
+#endif
 
     private:
         virtual void doFetch();
@@ -175,17 +181,21 @@ namespace pipeline {
 
         virtual void doWriteBack();
 
+        virtual void hazardUnitTick();
+
         void tickRegisters();
 
-        word_ bp_mem;
-        word_ pc_disp;
-        bool pc_r;
+        word_ bp_mem = 0;
+        word_ pc_disp = 0;
+        bool pc_r = false;
+
+        BypassOptionsEncoding hu_rs1 = BypassOptionsEncoding::REG;
+        BypassOptionsEncoding hu_rs2 = BypassOptionsEncoding::REG;
 
         modules::InstrMemUnit instr_mem_unit;
         modules::DataMemUnit data_mem_unit;
         modules::RegFile reg_file;
         ControlUnit control_unit;
-        HazardUnit hazard_unit;
         modules::Register<word_> program_counter;
 
         modules::Register<DecodeState> decode_register;
