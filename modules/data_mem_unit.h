@@ -35,12 +35,16 @@ namespace modules {
                 }
                 *reinterpret_cast<word_ *>(reinterpret_cast<byte_ *>(memory.data()) + address) = write_data;
 #ifdef DEBUG
-                std::cout << "============== writing value " << write_data << " on address ";
+                std::cout << "======================== writing value " << write_data << " on address ";
                 std::cout << std::hex << static_cast<word_>(address) << std::endl;
 #endif
                 // read_data modification is useless, as we don't read after write
             } else {
                 read_data = getData();
+#ifdef DEBUG
+                std::cout << "======================== reading value " << read_data << " on address ";
+                std::cout << std::hex << static_cast<word_>(address) << std::endl;
+#endif
             }
         }
 
@@ -55,10 +59,12 @@ namespace modules {
             return *reinterpret_cast<word_ *>(reinterpret_cast<byte_ *>(memory.data()) + address);
         }
 
+#ifdef DEBUG
         virtual void debug() const {
             std::cout << "DataMemUnit: read_data=" << read_data << "; write_enable=";
             std::cout << write_enable << "; address=" << address << std::endl;
         }
+#endif
 
         bool write_enable = false;
         word_ address = 0;

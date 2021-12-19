@@ -32,17 +32,17 @@ namespace modules {
             return read_data2;
         }
 
-        // Only for testing
-        [[nodiscard]] word_ getRegDirectly(word_ addr) const {
-            return regs.at(addr);
-        }
-
         void setNewSignals(byte_ addr1, byte_ addr2, byte_ addr3, bool we3, word_ wd3) {
             address1 = addr1;
             address2 = addr2;
             address3 = addr3;
             write_enable3 = we3;
             write_data3 = wd3;
+        }
+
+#ifdef DEBUG
+        [[nodiscard]] word_ getRegDirectly(word_ addr) const {
+            return regs.at(addr);
         }
 
         virtual void debug() const {
@@ -59,6 +59,7 @@ namespace modules {
             }
             std::cout << std::endl;
         }
+#endif
 
         byte_ address1 = 0;
         byte_ address2 = 0;

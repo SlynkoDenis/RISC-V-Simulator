@@ -89,6 +89,7 @@ namespace pipeline {
         MemoryState(word_ value) : mem_we(static_cast<bool>(value)),
                                    mem_to_reg(static_cast<bool>(value)),
                                    wb_we(static_cast<bool>(value)),
+                                   jmp_cond(static_cast<bool>(value)),
                                    write_data(value),
                                    alu_res(value),
                                    wb_a(value) {};
@@ -96,6 +97,7 @@ namespace pipeline {
         bool mem_we;
         bool mem_to_reg;
         bool wb_we;
+        bool jmp_cond;
         word_ write_data;
         word_ alu_res;
         word_ wb_a;
@@ -105,6 +107,7 @@ namespace pipeline {
         LOG_FIELD(memory_state, mem_we);
         LOG_FIELD(memory_state, mem_to_reg);
         LOG_FIELD(memory_state, wb_we);
+        LOG_FIELD(memory_state, jmp_cond);
         LOG_FIELD(memory_state, write_data);
         LOG_FIELD(memory_state, alu_res);
         LOG_FIELD(memory_state, wb_a);
@@ -184,6 +187,10 @@ namespace pipeline {
         virtual void hazardUnitTick();
 
         void tickRegisters();
+
+        void haltPipeline();
+
+        void restartPipeline();
 
         word_ bp_mem = 0;
         word_ pc_disp = 0;

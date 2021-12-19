@@ -190,4 +190,94 @@ namespace pipeline::tests {
         const word_ magic_number = 42;
         ASSERT_EQ(cpu.getRegister(reg_addr), magic_number);
     }
+
+    TEST_F(IntegrationTest, HazardTest3) {
+        /*
+         * lw    a0, 8
+         * addi  a0, a0, 8
+         * addi  a0, a0, 8
+         * addi  a0, a0, 42
+         * nop
+         * nop
+         * nop
+         * nop
+         * nop
+         */
+        const std::vector<pipeline::word_> instructions = {
+                0x00802503,
+                0x00850513,
+                0x00850513,
+                0x02a50513,
+                0x00000013,
+                0x00000013,
+                0x00000013,
+                0x00000013,
+                0x00000013
+        };
+        const word_ magic_number = 1;
+        const word_ data_addr_offset = 8;
+        std::unordered_map<pipeline::word_, pipeline::word_> data = {
+                {data_addr_offset, magic_number}
+        };
+
+        const pipeline::word_ start_inst_addr = 16;
+        pipeline::Pipeline cpu{instructions, start_inst_addr, data};
+        cpu.setProgramCounter(start_inst_addr);
+        try {
+            while (true) {
+                cpu.tick();
+            }
+        } catch (std::logic_error& e) {
+            std::cout << e.what() << std::endl;
+        }
+
+        const word_ reg_addr = 10;
+        const word_ res = 59;
+        ASSERT_EQ(cpu.getRegister(reg_addr), res);
+    }
+
+    TEST_F(IntegrationTest, HazardTest4) {
+        /*
+         * beq a6, a7, test
+         * addi  a0, a0, 8
+         * addi  a0, a0, 8
+         * addi  a0, a0, 8
+         * addi  a0, a0, 8
+         * test:
+         * addi  a0, a0, 8
+         * nop
+         * nop
+         * nop
+         * nop
+         * nop
+         */
+        const std::vector<pipeline::word_> instructions = {
+                0x01180a63,
+                0x00850513,
+                0x00850513,
+                0x00850513,
+                0x00850513,
+                0x00850513,
+                0x00000013,
+                0x00000013,
+                0x00000013,
+                0x00000013,
+                0x00000013
+        };
+
+        const pipeline::word_ start_inst_addr = 16;
+        pipeline::Pipeline cpu{instructions, start_inst_addr};
+        cpu.setProgramCounter(start_inst_addr);
+        try {
+            while (true) {
+                cpu.tick();
+            }
+        } catch (std::logic_error& e) {
+            std::cout << e.what() << std::endl;
+        }
+
+        const word_ reg_addr = 10;
+        const word_ magic_number = 8;
+        ASSERT_EQ(cpu.getRegister(reg_addr), magic_number);
+    }
 }

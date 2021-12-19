@@ -33,9 +33,11 @@ namespace modules {
             return end_of_section;
         }
 
+#ifdef DEBUG
         virtual void debug() {
             std::cout << "InstrMemUnit: read_data=" << getData() << "; address=" << address << std::endl;
         }
+#endif
 
         word_ address = 0;
 

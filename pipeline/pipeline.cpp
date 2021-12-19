@@ -17,6 +17,9 @@ namespace pipeline {
         doDecode();
         doFetch();
 
+        if (!program_counter.enable_flag) {
+            memory_register.clear();
+        }
         tickRegisters();
         program_counter.tick();
         hazardUnitTick();
@@ -65,7 +68,10 @@ namespace pipeline {
         // update next register
         decode_register.next.instr = instr_mem_unit.getData();
         decode_register.next.pc_de = program_counter.getCurrent();
-        instr_mem_unit.address = program_counter.getCurrent();
+        // if there was jump, we have pc = pc + 4, which must be written into rd of instruction
+        if (memory_register.getCurrent().jmp_cond) {
+            write_back_register.next.wb_d = program_counter.next;
+        }
     }
 
     void Pipeline::doDecode() {
@@ -119,20 +125,13 @@ namespace pipeline {
         bool cmp_res = modules::Cmp<word_>{}(exec_reg_cur.cmp_control,
                                              src_a,
                                              rs2v);
-        // TODO: write jal logic: rd = pc + 4
-        if (exec_reg_cur.jmp_cond || exec_reg_cur.brn_cond) {
-            std::cout << "###################################################################\n";
-            std::cout << "cmp_res = " << cmp_res << std::endl;
-            std::cout << "jmp_cond = " << exec_reg_cur.jmp_cond << std::endl;
-            std::cout << "brn_cond = " << exec_reg_cur.brn_cond << std::endl;
-            std::cout << "###################################################################\n";
-        }
         pc_r = modules::Or<bool>{}(exec_reg_cur.jmp_cond,
                                    modules::And<bool>{}(cmp_res, exec_reg_cur.brn_cond));
         // update next registers
         memory_register.next.mem_we = exec_reg_cur.mem_we && (!exec_reg_cur.v_de);
         memory_register.next.mem_to_reg = exec_reg_cur.mem_to_reg;
         memory_register.next.wb_we = exec_reg_cur.wb_we && (!exec_reg_cur.v_de);
+        memory_register.next.jmp_cond = exec_reg_cur.jmp_cond;
         memory_register.next.write_data = rs2v;
         memory_register.next.alu_res = modules::ALU{}(exec_reg_cur.alu_op, src_a, src_b);
 #ifdef DEBUG
@@ -140,7 +139,10 @@ namespace pipeline {
         std::cout << ", " << src_a << ", " << src_b << ") == " << memory_register.next.alu_res << std::endl;
 #endif
         memory_register.next.wb_a = utils::getRd(exec_reg_cur.instr);
-
+        // if the instruction is jalr, then pc_disp must be changed
+        if (utils::getOpcode(exec_reg_cur.instr) == 0b1100111) {
+            pc_disp = memory_register.next.alu_res;
+        }
         decode_register.next.v_de = pc_r;
     }
 
@@ -163,32 +165,38 @@ namespace pipeline {
 
     void Pipeline::doWriteBack() {}
 
+    void Pipeline::haltPipeline() {
+        program_counter.enable_flag = false;
+        decode_register.enable_flag = false;
+        execute_register.enable_flag = false;
+    }
+
+    void Pipeline::restartPipeline() {
+        program_counter.enable_flag = true;
+        decode_register.enable_flag = true;
+        execute_register.enable_flag = true;
+    }
+
     void Pipeline::hazardUnitTick() {
         if (pc_r) {
-            std::cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n";
-            execute_register.clear();
             decode_register.clear();
+            execute_register.clear();
             return;
         }
 
         auto execute_stage_instr = execute_register.getCurrent().instr;
-        auto opcode = utils::getOpcode(execute_stage_instr);
         auto rs1 = utils::getRs1(execute_stage_instr);
         auto rs2 = utils::getRs2(execute_stage_instr);
         auto mem_wb_a = memory_register.getCurrent().wb_a;
 
-        std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\n";
-        std::cout << "instr = " << execute_stage_instr << ", opcode = " << static_cast<word_>(opcode);
-        std::cout << ", rs1 = " << static_cast<word_>(rs1);
-        std::cout << ", rs2 = " << static_cast<word_>(rs2);
-        std::cout << ", mem_to_reg = " << memory_register.getCurrent().mem_to_reg;
-        std::cout << ", mem_wb_a = " << static_cast<word_>(mem_wb_a) << ", wb_wb_a = ";
-        std::cout << static_cast<word_>(write_back_register.getCurrent().wb_a) << std::endl;
-        std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\n";
-
+        bool was_halted = false;
         if (rs1 != 0) {
             if (rs1 == mem_wb_a) {
                 hu_rs1 = BypassOptionsEncoding::MEM;
+                if (!memory_register.getCurrent().mem_to_reg) {
+                    haltPipeline();
+                    was_halted = true;
+                }
             } else if (rs1 == write_back_register.getCurrent().wb_a) {
                 hu_rs1 = BypassOptionsEncoding::WB;
             } else {
@@ -200,26 +208,21 @@ namespace pipeline {
 
         if (rs2 != 0) {
             if (rs2 == mem_wb_a) {
-                if (memory_register.getCurrent().mem_to_reg) {
-                    hu_rs2 = BypassOptionsEncoding::MEM;
-                } else {
-                    throw std::logic_error("TBD: write SW logic when execute & memory hazard");
+                hu_rs2 = BypassOptionsEncoding::MEM;
+                if (!memory_register.getCurrent().mem_to_reg) {
+                    haltPipeline();
+                    was_halted = true;
                 }
             } else if (rs2 == write_back_register.getCurrent().wb_a) {
                 hu_rs2 = BypassOptionsEncoding::WB;
-            } else if (opcode == 0b0000011 &&
-                       (rs1 == mem_wb_a || rs2 == mem_wb_a)) {
-                decode_register.enable_flag = false;
-                execute_register.enable_flag = false;
             } else {
                 hu_rs2 = BypassOptionsEncoding::REG;
-                decode_register.enable_flag = true;
-                execute_register.enable_flag = true;
             }
         } else {
             hu_rs2 = BypassOptionsEncoding::REG;
-            decode_register.enable_flag = true;
-            execute_register.enable_flag = true;
+        }
+        if (!was_halted) {
+            restartPipeline();
         }
     }
 

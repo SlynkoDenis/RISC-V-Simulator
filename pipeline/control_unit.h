@@ -107,7 +107,8 @@ namespace pipeline {
                     default:
                         throw std::logic_error("invalid funct3: " + std::to_string(funct3));
                 }
-            } else if (opcode == 0b0010111 || opcode == 0b0000011 || opcode == 0b0100011) {
+            } else if (opcode == 0b0010111 || opcode == 0b1100111 ||
+                       opcode == 0b0000011 || opcode == 0b0100011) {
                 alu_op = ALUControl::ADD;
             } else {
                 alu_op = ALUControl::NOP;
@@ -151,6 +152,7 @@ namespace pipeline {
             }
         }
 
+#ifdef DEBUG
         virtual void debug() const {
             std::cout << "ControlUnit: opcode=" << static_cast<modules::word_>(opcode) << "; funct3=";
             std::cout << static_cast<modules::word_>(funct3) << "; funct7=" << static_cast<modules::word_>(funct7);
@@ -158,6 +160,7 @@ namespace pipeline {
             std::cout << "; mem_to_reg=" << mem_to_reg << "; brn_cond=" << brn_cond << "; jmp_cond=" << jmp_cond;
             std::cout << "; cmp_cond=" << cmp_control << "; alu_src2=" << alu_src2 << "; alu_op=" << alu_op << std::endl;
         }
+#endif
 
         modules::byte_ opcode = 0;
         modules::byte_ funct3 = 0;

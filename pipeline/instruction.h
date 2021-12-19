@@ -20,31 +20,31 @@ namespace pipeline::utils {
         JType
     };
 
-    inline byte_ getFunct7(word_ instruction) {
+    constexpr inline byte_ getFunct7(word_ instruction) {
         return static_cast<byte_>((instruction >> 25) & 0x0000007f);
     }
 
-    inline byte_ getRs2(word_ instruction) {
+    constexpr inline byte_ getRs2(word_ instruction) {
         return static_cast<byte_>((instruction >> 20) & 0x0000001f);
     }
 
-    inline byte_ getRs1(word_ instruction) {
+    constexpr inline byte_ getRs1(word_ instruction) {
         return static_cast<byte_>((instruction >> 15) & 0x0000001f);
     }
 
-    inline byte_ getFunct3(word_ instruction) {
+    constexpr inline byte_ getFunct3(word_ instruction) {
         return static_cast<byte_>((instruction >> 12) & 0x00000007);
     }
 
-    inline byte_ getRd(word_ instruction) {
+    constexpr inline byte_ getRd(word_ instruction) {
         return static_cast<byte_>((instruction >> 7) & 0x0000001f);
     }
 
-    inline byte_ getOpcode(word_ instruction) {
+    constexpr inline byte_ getOpcode(word_ instruction) {
         return static_cast<byte_>(instruction & 0x0000007f);
     }
 
-    inline InstructionType getInstructionType(byte_ opcode) {
+    constexpr inline InstructionType getInstructionType(byte_ opcode) {
         switch (opcode) {
             case 0b0110011:
                 return InstructionType::RType;
@@ -69,25 +69,7 @@ namespace pipeline::utils {
     }
 
     struct ImmediateExtensionBlock {
-//        modules::word_ operator()(modules::word_ instruction, utils::InstructionType instr_t) {
-//            modules::byte_ sign = utils::getSign(instruction);
-//            modules::word_ res = 0;
-//            switch (instr_t) {
-//                case utils::InstructionType::IType:
-//                    res = (instruction >> 20) & 0x00000fff;
-//                    if (sign) {
-//                        res |= 0xfffff000;
-//                    }
-//                    break;
-//                case utils::InstructionType::SType:
-//                    res = ((instruction >> 20) & 0x00000fc) | ((instruction >> 7) & 0x0000001f);
-//                    if (sign) {
-//                        res |= 0xfffff000;
-//                    }
-//            }
-//            return res;
-//        }
-        inline word_ operator ()(word_ instr) {
+        constexpr inline word_ operator ()(word_ instr) {
             auto instr_t = utils::getInstructionType(getOpcode(instr));
             if (instr_t == InstructionType::UNKNOWN) {
                 return 0;
@@ -97,22 +79,22 @@ namespace pipeline::utils {
                 struct {
                     word_ pad0 : 20;
                     word_ imm0 : 12;
-                } __attribute__((packed)) fi;
+                } __attribute__((packed)) instr_i_type;
                 struct {
                     word_ imm0 : 12;
                     word_ se : 20;
-                } __attribute__((packed)) di;
+                } __attribute__((packed)) imm_i_type;
                 struct {
                     word_ pad0 : 7;
                     word_ imm0 : 5;
                     word_ pad1 : 13;
                     word_ imm1 : 7;
-                } __attribute__((packed)) fs;
+                } __attribute__((packed)) instr_s_type;
                 struct {
                     word_ imm0 : 5;
                     word_ imm1 : 7;
                     word_ se : 20;
-                } __attribute__((packed)) ds;
+                } __attribute__((packed)) imm_s_type;
                 struct {
                     word_ pad0 : 7;
                     word_ imm2 : 1;
@@ -120,36 +102,36 @@ namespace pipeline::utils {
                     word_ pad2 : 13;
                     word_ imm1 : 6;
                     word_ sign : 1;
-                } __attribute__((packed)) fb;
+                } __attribute__((packed)) instr_b_type;
                 struct {
                     word_ zero : 1;
                     word_ imm0 : 4;
                     word_ imm1 : 6;
                     word_ imm2 : 1;
                     word_ se : 20;
-                } __attribute__((packed)) db;
+                } __attribute__((packed)) imm_b_type;
+                struct {
+                    word_ pad : 12;
+                    word_ imm : 20;
+                } __attribute__((packed)) instr_u_type;
+                struct {
+                    word_ zeros : 12;
+                    word_ imm : 20;
+                } __attribute__((packed)) imm_u_type;
                 struct {
                     word_ pad0 : 12;
                     word_ imm2 : 8;
                     word_ imm1 : 1;
                     word_ imm0 : 10;
                     word_ sign : 1;
-                } __attribute__((packed)) fj;
+                } __attribute__((packed)) instr_j_type;
                 struct {
                     word_ zero : 1;
                     word_ imm0 : 10;
                     word_ imm1 : 1;
                     word_ imm2 : 8;
                     word_ se : 12;
-                } __attribute__((packed)) dj;
-                struct {
-                    word_ pad : 12;
-                    word_ imm : 20;
-                } __attribute__((packed)) fu;
-                struct {
-                    word_ zeros : 12;
-                    word_ imm : 20;
-                } __attribute__((packed)) du;
+                } __attribute__((packed)) imm_j_type;
             } in{.instr = instr}, out{.instr = 0};
             byte_ sign = (in.instr >> 31) & 1;
 
@@ -157,39 +139,40 @@ namespace pipeline::utils {
                 case InstructionType::RType:
                     break;
                 case InstructionType::IType:
-                    out.di.imm0 = in.fi.imm0;
+                    out.imm_i_type.imm0 = in.instr_i_type.imm0;
                     if (sign) {
-                        out.di.se--;
+                        out.imm_i_type.se--;
                     }
                     break;
                 case InstructionType::SType:
-                    out.ds.imm0 = in.fs.imm0;
-                    out.ds.imm1 = in.fs.imm1;
+                    out.imm_s_type.imm0 = in.instr_s_type.imm0;
+                    out.imm_s_type.imm1 = in.instr_s_type.imm1;
                     if (sign) {
-                        out.ds.se--;
+                        out.imm_s_type.se--;
                     }
                     break;
                 case InstructionType::BType:
-                    out.db.imm0 = in.fb.imm0;
-                    out.db.imm1 = in.fb.imm1;
-                    out.db.imm2 = in.fb.imm2;
+                    out.imm_b_type.imm0 = in.instr_b_type.imm0;
+                    out.imm_b_type.imm1 = in.instr_b_type.imm1;
+                    out.imm_b_type.imm2 = in.instr_b_type.imm2;
                     if (sign) {
-                        out.db.se--;
+                        out.imm_b_type.se--;
                     }
                     break;
                 case InstructionType::JType:
-                    out.dj.imm0 = in.fj.imm0;
-                    out.dj.imm1 = in.fj.imm1;
-                    out.dj.imm2 = in.fj.imm2;
+                    out.imm_j_type.imm0 = in.instr_j_type.imm0;
+                    out.imm_j_type.imm1 = in.instr_j_type.imm1;
+                    out.imm_j_type.imm2 = in.instr_j_type.imm2;
                     if (sign) {
-                        out.dj.se--;
+                        out.imm_j_type.se--;
                     }
                     break;
                 case InstructionType::UType:
-                    out.du.imm = in.fu.imm;
+                    out.imm_u_type.imm = in.instr_u_type.imm;
                     break;
                 default:
-                    throw std::logic_error("invalid instruction type");
+                    throw std::logic_error("invalid instruction type: " +\
+                                           std::to_string(static_cast<byte_>(instr_t)));
             }
 
             return out.instr;
