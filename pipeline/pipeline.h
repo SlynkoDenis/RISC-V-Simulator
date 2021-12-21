@@ -163,6 +163,10 @@ namespace pipeline {
 
         virtual void run();
 
+        size_t getTicksCounter() const {
+            return ticks_counter;
+        }
+
 #ifdef DEBUG
         [[nodiscard]] virtual word_ getRegister(word_ addr) const {
             return reg_file.getRegDirectly(addr);
@@ -197,11 +201,15 @@ namespace pipeline {
 
         virtual void hazardUnitTick();
 
-        void tickRegisters();
+        void tickStateRegisters();
 
         void haltPipeline();
 
         void restartPipeline();
+
+        size_t ticks_counter = 0;
+        int last_instructions_counter = 0;
+        bool last_instructions_flag = false;
 
         word_ bp_mem = 0;
         word_ pc_disp = 0;

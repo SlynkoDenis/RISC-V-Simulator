@@ -33,6 +33,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
     }
 
     TEST_F(InstructionsTest, AddTest) {
@@ -54,6 +55,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
     }
 
     TEST_F(InstructionsTest, RightShiftTest) {
@@ -94,6 +96,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr, data};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         ASSERT_EQ(cpu.getRegister(reg_addr0), shift_res0);
         ASSERT_EQ(cpu.getRegister(reg_addr2), shift_res2);
@@ -122,6 +125,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         ASSERT_EQ(cpu.getRegister(reg_addr1), a1_value);
         ASSERT_EQ(cpu.getRegister(reg_addr0), cmp_res);
@@ -144,6 +148,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         const pipeline::byte_ reg_addr = 10;
         ASSERT_EQ(cpu.getRegister(reg_addr), start_inst_addr);
@@ -172,6 +177,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr, data};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         ASSERT_EQ(cpu.getRegister(10), magic_number);
     }
@@ -200,6 +206,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr, data};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         ASSERT_EQ(cpu.getRegister(10), magic_number);
         const pipeline::word_ zero_extended = 0xff;
@@ -235,6 +242,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         ASSERT_EQ(cpu.getRegister(reg_addr), magic_number);
         ASSERT_EQ(cpu.getDataWord(data_addr), magic_number);
@@ -270,6 +278,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         ASSERT_EQ(cpu.getRegister(reg_addr), magic_number);
         ASSERT_EQ(cpu.getDataWord(data_addr), cut_magic_number);

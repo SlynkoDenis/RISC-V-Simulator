@@ -19,18 +19,18 @@ namespace modules {
             }
             std::copy(instructions.cbegin(), instructions.cend(),
                       memory.begin() + start_address / sizeof(word_));
+            start_of_section = start_address;
             end_of_section = start_address + instructions.size() * sizeof(word_);
         }
 
         virtual ~InstrMemUnit() noexcept = default;
 
         [[nodiscard]] word_ getData() {
-
             return *reinterpret_cast<word_ *>(reinterpret_cast<byte_ *>(memory.data()) + address);
         }
 
-        [[nodiscard]] word_ getEndOfInstructionSection() const {
-            return end_of_section;
+        [[nodiscard]] bool isPcOutOfSection(word_ pc) const {
+            return (pc < start_of_section || pc >= end_of_section);
         }
 
 #ifdef DEBUG
@@ -44,6 +44,7 @@ namespace modules {
     private:
         static constexpr size_t capacity = 1024;
         std::array<word_, capacity> memory = {0};
+        word_ start_of_section = 0;
         word_ end_of_section = 0;
     };
 }

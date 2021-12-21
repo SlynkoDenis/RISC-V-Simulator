@@ -18,59 +18,64 @@ namespace pipeline {
         doFetch();
 
         if (!program_counter.enable_flag) {
+            // Case of pipeline stall due to LW instruction conflict
             memory_register.clear();
         }
-        tickRegisters();
+        tickStateRegisters();
         program_counter.tick();
         hazardUnitTick();
 
+        ++ticks_counter;
         DEBUG_LOG((*this));
     }
 
-#ifdef DEBUG
-    void Pipeline::debug() {
-        DEBUG_LOG(program_counter);
-        DEBUG_LOG(decode_register);
-        DEBUG_LOG(execute_register);
-        DEBUG_LOG(memory_register);
-        DEBUG_LOG(write_back_register);
-
-        std::cout << "pc_redirect == " << pc_r << std::endl;
-        std::cout << "hu_rs1 == " << hu_rs1 << std::endl;
-        std::cout << "hu_rs2 == " << hu_rs2 << std::endl;
-
-        DEBUG_LOG(instr_mem_unit);
-        DEBUG_LOG(data_mem_unit);
-        DEBUG_LOG(reg_file);
-        DEBUG_LOG(control_unit);
-
-        printRegisters();
-
-        std::cout << "\n\n";
-    }
-#endif
-
     void Pipeline::doFetch() {
-        if (program_counter.getCurrent() >= instr_mem_unit.getEndOfInstructionSection() &&
+        // check if we are out of instructions section
+        if (!last_instructions_flag &&
+            instr_mem_unit.isPcOutOfSection(program_counter.getCurrent()) &&
             !(execute_register.next.jmp_cond || execute_register.next.brn_cond)) {
-            throw std::logic_error("out_of_instr_section");
+            last_instructions_flag = true;
+            if (memory_register.getCurrent().jmp_cond) {
+                // branch takes if the jump was executed
+                last_instructions_counter = 1;
+                program_counter.enable_flag = false;
+                decode_register.enable_flag = false;
+                execute_register.enable_flag = false;
+                memory_register.enable_flag = false;
+            } else if (!pc_r) {
+                // If we executed the last instruction, we must finish
+                // the execute, memory and write-back stages
+                last_instructions_counter = 3;
+                program_counter.enable_flag = false;
+                decode_register.enable_flag = false;
+                decode_register.clear();
+            } else {
+                // if the branch was taken to the out-of-instructions zone,
+                // the execution can be finished straightaway
+                throw std::logic_error("out_of_instr_section");
+            }
         }
+
         instr_mem_unit.address = program_counter.getCurrent();
         auto summand1 = modules::Multiplexer2<word_>{}(pc_r,
                                                        program_counter.getCurrent(),
                                                        execute_register.getCurrent().pc_de);
         auto summand2 = modules::Multiplexer2<word_>{}(pc_r, 4, pc_disp);
         program_counter.next = modules::Add<word_>{}(summand1, summand2);
-        if (program_counter.next % 4 != 0) {
+        if (program_counter.next % sizeof(word_) != 0) {
             throw modules::AlignmentException("pc is not aligned: pc_next == " +\
-                                              std::to_string(program_counter.next));
+                std::to_string(program_counter.next));
         }
         // update next register
         decode_register.next.instr = instr_mem_unit.getData();
         decode_register.next.pc_de = program_counter.getCurrent();
-        // if there was jump, we have pc = pc + 4, which must be written into rd of instruction
-        if (memory_register.getCurrent().jmp_cond) {
-            write_back_register.next.wb_d = program_counter.next;
+
+        if (last_instructions_flag) {
+            if (last_instructions_counter) {
+                --last_instructions_counter;
+            } else {
+                throw std::logic_error("out_of_instr_section");
+            }
         }
     }
 
@@ -143,6 +148,10 @@ namespace pipeline {
             pc_disp = memory_register.next.alu_res;
             pc_disp &= 0xfffffffe;
         }
+        if (exec_reg_cur.jmp_cond) {
+            // write into rd the value pc + 4 for instructions JAL and JALR
+            memory_register.next.alu_res = modules::Add<word_>{}(exec_reg_cur.pc_de, 4);
+        }
         decode_register.next.v_de = pc_r;
     }
 
@@ -180,6 +189,7 @@ namespace pipeline {
 
     void Pipeline::hazardUnitTick() {
         if (pc_r) {
+            // jump or branch. Must clear invalid stages
             decode_register.clear();
             execute_register.clear();
             return;
@@ -195,6 +205,7 @@ namespace pipeline {
             if (rs1 == mem_wb_a) {
                 hu_rs1 = BypassOptionsEncoding::MEM;
                 if (!memory_register.getCurrent().mem_to_reg) {
+                    // LW conflict case
                     haltPipeline();
                     was_halted = true;
                 }
@@ -211,6 +222,7 @@ namespace pipeline {
             if (rs2 == mem_wb_a) {
                 hu_rs2 = BypassOptionsEncoding::MEM;
                 if (!memory_register.getCurrent().mem_to_reg) {
+                    // LW conflict case
                     haltPipeline();
                     was_halted = true;
                 }
@@ -223,11 +235,13 @@ namespace pipeline {
             hu_rs2 = BypassOptionsEncoding::REG;
         }
         if (!was_halted) {
+            // Changes the registers' state only if the pipeline was stalled before;
+            // otherwise does nothing
             restartPipeline();
         }
     }
 
-    void Pipeline::tickRegisters() {
+    void Pipeline::tickStateRegisters() {
         decode_register.tick();
         execute_register.tick();
         memory_register.tick();
@@ -243,8 +257,27 @@ namespace pipeline {
             std::cout << e.what() << std::endl;
         }
     }
-}
 
-/*
- * Errata5: для ret нужно поменять fetch, понятно как
- */
+#ifdef DEBUG
+    void Pipeline::debug() {
+        DEBUG_LOG(program_counter);
+        DEBUG_LOG(decode_register);
+        DEBUG_LOG(execute_register);
+        DEBUG_LOG(memory_register);
+        DEBUG_LOG(write_back_register);
+
+        std::cout << "pc_redirect == " << pc_r << std::endl;
+        std::cout << "hu_rs1 == " << hu_rs1 << std::endl;
+        std::cout << "hu_rs2 == " << hu_rs2 << std::endl;
+
+        DEBUG_LOG(instr_mem_unit);
+        DEBUG_LOG(data_mem_unit);
+        DEBUG_LOG(reg_file);
+        DEBUG_LOG(control_unit);
+
+        printRegisters();
+
+        std::cout << "\n\n";
+    }
+#endif
+}

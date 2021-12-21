@@ -82,6 +82,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         const word_ reg_addr0 = 10;
         const word_ reg_addr1 = 13;
@@ -122,6 +123,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         const word_ reg_addr0 = 10;
         const word_ reg_addr1 = 11;
@@ -167,6 +169,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         const word_ reg_addr = 10;
         const word_ magic_number = 42;
@@ -206,6 +209,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr, data};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         const word_ reg_addr = 10;
         const word_ res = 59;
@@ -245,6 +249,7 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         const word_ reg_addr = 10;
         const word_ magic_number = 8;
@@ -252,6 +257,8 @@ namespace pipeline::tests {
     }
 
     TEST_F(IntegrationTest, HazardTest5) {
+        // NB! this test also checks that without NOP instructions
+        // execution of the last 3 instructions is finished correctly
         /*
          * addi  a6, a6, 11
          * addi  a7, a7, 12
@@ -262,11 +269,6 @@ namespace pipeline::tests {
          * ebreak
          * test:
          * addi  a0, a0, 8
-         * nop
-         * nop
-         * nop
-         * nop
-         * nop
          */
         const std::vector<pipeline::word_> instructions = {
                 0x00b80813,
@@ -276,18 +278,14 @@ namespace pipeline::tests {
                 0x00850513,
                 0x00850513,
                 0x00100073,
-                0x00850513,
-                0x00000013,
-                0x00000013,
-                0x00000013,
-                0x00000013,
-                0x00000013
+                0x00850513
         };
 
         const pipeline::word_ start_inst_addr = 16;
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         const word_ reg_addr = 10;
         const word_ magic_number = 8;
@@ -331,11 +329,12 @@ namespace pipeline::tests {
         pipeline::Pipeline cpu{instructions, start_inst_addr};
         cpu.setProgramCounter(start_inst_addr);
         cpu.run();
+        std::cout << "Taken " << std::dec << cpu.getTicksCounter() << " ticks to run the program" << std::endl;
 
         const word_ reg_addr0 = 10;
         const word_ calculation_res = 24;
         const word_ reg_addr1 = 16;
-        const word_ jalr_pc = start_inst_addr + 9 * 4;
+        const word_ jalr_pc = start_inst_addr + 7 * sizeof(word_);
         ASSERT_EQ(cpu.getRegister(reg_addr0), calculation_res);
         ASSERT_EQ(cpu.getRegister(reg_addr1), jalr_pc);
     }
