@@ -89,15 +89,16 @@ namespace pipeline {
         control_unit.tick();
         // update next register
         auto tmp = control_unit.getControlSignals();
-        execute_register.next.alu_op = std::get<7>(tmp);
-        execute_register.next.alu_src2 = std::get<6>(tmp);
-        execute_register.next.wb_we = std::get<0>(tmp);
-        execute_register.next.mem_we = std::get<1>(tmp);
-        execute_register.next.mem_to_reg = std::get<2>(tmp);
-        execute_register.next.brn_cond = std::get<3>(tmp);
-        execute_register.next.jmp_cond = std::get<4>(tmp);
-        execute_register.next.cmp_control = std::get<5>(tmp);
-
+        execute_register.next.alu_op = std::get<8>(tmp);
+        execute_register.next.alu_src2 = std::get<7>(tmp);
+        execute_register.next.is_jalr = std::get<0>(tmp);
+        execute_register.next.wb_we = std::get<1>(tmp);
+        execute_register.next.mem_we = std::get<2>(tmp);
+        execute_register.next.mem_to_reg = std::get<3>(tmp);
+        execute_register.next.brn_cond = std::get<4>(tmp);
+        execute_register.next.jmp_cond = std::get<5>(tmp);
+        execute_register.next.cmp_control = std::get<6>(tmp);
+        execute_register.next.funct3 = control_unit.funct3;
         execute_register.next.data1 = reg_file.getReadData1();
         execute_register.next.data2 = reg_file.getReadData2();
         execute_register.next.pc_de = decode_stage_instr.pc_de;
@@ -128,6 +129,8 @@ namespace pipeline {
         pc_r = modules::Or<bool>{}(exec_reg_cur.jmp_cond,
                                    modules::And<bool>{}(cmp_res, exec_reg_cur.brn_cond));
         // update next registers
+        // store_mode will be used by DMEM
+        memory_register.next.store_mode = exec_reg_cur.funct3;
         memory_register.next.mem_we = exec_reg_cur.mem_we && (!exec_reg_cur.v_de);
         memory_register.next.mem_to_reg = exec_reg_cur.mem_to_reg;
         memory_register.next.wb_we = exec_reg_cur.wb_we && (!exec_reg_cur.v_de);
@@ -140,7 +143,7 @@ namespace pipeline {
 #endif
         memory_register.next.wb_a = utils::getRd(exec_reg_cur.instr);
         // if the instruction is jalr, then pc_disp must be changed
-        if (utils::getOpcode(exec_reg_cur.instr) == 0b1100111) {
+        if (exec_reg_cur.is_jalr) {
             pc_disp = memory_register.next.alu_res;
         }
         decode_register.next.v_de = pc_r;
@@ -149,6 +152,7 @@ namespace pipeline {
     void Pipeline::doMemory() {
         auto mem_reg_cur = memory_register.getCurrent();
         if (!mem_reg_cur.mem_to_reg || mem_reg_cur.mem_we) {
+            data_mem_unit.store_mode = mem_reg_cur.store_mode;
             data_mem_unit.write_enable = mem_reg_cur.mem_we;
             data_mem_unit.address = mem_reg_cur.alu_res;
             data_mem_unit.write_data = mem_reg_cur.write_data;

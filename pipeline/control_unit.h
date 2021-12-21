@@ -2,6 +2,7 @@
 #define RISC_V_SIMULATOR_CONTROL_UNIT_H
 
 #include <tuple>
+#include "ebreak_exception.h"
 #include "instruction.h"
 #include "../modules/alu.h"
 #include "../modules/cmp.h"
@@ -17,12 +18,19 @@ namespace pipeline {
         virtual ~ControlUnit() noexcept = default;
 
         [[nodiscard]] auto getControlSignals() {
-            return std::make_tuple(wb_we, mem_we, mem_to_reg, brn_cond,
+            return std::make_tuple(is_jalr, wb_we, mem_we, mem_to_reg, brn_cond,
                                    jmp_cond, cmp_control, alu_src2, alu_op);
         }
 
         virtual void tick() {
-            if ((opcode == 0b0100011 && funct3 == 0b010) ||
+            if (opcode == 0b1110011) {
+                throw EbreakException();
+            }
+
+            is_jalr = (opcode == 0b1100111);
+
+            // for stores, branches and ecall we don't write anything back
+            if ((opcode == 0b0100011) ||
                 (opcode == 0b1100011) ||
                 (opcode == 0b1110011)) {
                 wb_we = false;
@@ -30,7 +38,7 @@ namespace pipeline {
                 wb_we = true;
             }
 
-            mem_we = (opcode == 0b0100011 && funct3 == 0b010);
+            mem_we = (opcode == 0b0100011);
 
             auto instr_type = utils::getInstructionType(opcode);
             if (instr_type == utils::InstructionType::IType ||
@@ -167,6 +175,7 @@ namespace pipeline {
         modules::byte_ funct7 = 0;
 
     private:
+        bool is_jalr = false;
         bool wb_we = false;
         bool mem_we = false;
         bool mem_to_reg = false;

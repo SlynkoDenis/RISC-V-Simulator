@@ -39,7 +39,9 @@ namespace pipeline {
     }
 
     struct ExecuteState {
-        ExecuteState(word_ value) : alu_op(static_cast<modules::ALUControl>(value)),
+        ExecuteState(word_ value) : funct3(static_cast<byte_>(value)),
+                                    is_jalr(static_cast<bool>(value)),
+                                    alu_op(static_cast<modules::ALUControl>(value)),
                                     alu_src2(static_cast<bool>(value)),
                                     mem_to_reg(static_cast<bool>(value)),
                                     wb_we(static_cast<bool>(value)),
@@ -53,6 +55,8 @@ namespace pipeline {
                                     pc_de(value),
                                     instr(value) {};
 
+        byte_ funct3;
+        bool is_jalr;
         modules::ALUControl alu_op;
         bool alu_src2;
         bool mem_to_reg;
@@ -69,6 +73,8 @@ namespace pipeline {
     };
 
     inline std::ostream& operator<<(std::ostream& os, const ExecuteState& execute_state) {
+        os << "funct3=" << std::hex << static_cast<word_>(execute_state.funct3);
+        LOG_FIELD(execute_state, is_jalr);
         LOG_FIELD(execute_state, alu_op);
         LOG_FIELD(execute_state, alu_src2);
         LOG_FIELD(execute_state, mem_to_reg);
@@ -90,6 +96,7 @@ namespace pipeline {
                                    mem_to_reg(static_cast<bool>(value)),
                                    wb_we(static_cast<bool>(value)),
                                    jmp_cond(static_cast<bool>(value)),
+                                   store_mode(static_cast<byte_>(value)),
                                    write_data(value),
                                    alu_res(value),
                                    wb_a(value) {};
@@ -98,6 +105,7 @@ namespace pipeline {
         bool mem_to_reg;
         bool wb_we;
         bool jmp_cond;
+        byte_ store_mode;
         word_ write_data;
         word_ alu_res;
         word_ wb_a;
@@ -108,6 +116,7 @@ namespace pipeline {
         LOG_FIELD(memory_state, mem_to_reg);
         LOG_FIELD(memory_state, wb_we);
         LOG_FIELD(memory_state, jmp_cond);
+        os << "store_mode" << "=" << std::hex << static_cast<word_>(memory_state.store_mode);
         LOG_FIELD(memory_state, write_data);
         LOG_FIELD(memory_state, alu_res);
         LOG_FIELD(memory_state, wb_a);
