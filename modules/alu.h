@@ -77,10 +77,14 @@ namespace modules {
                 case ALUControl::XOR:
                     return src_a ^ src_b;
                 case ALUControl::SLL:
+                    // for shifts only the least-significant 5 bits are used
+                    src_b &= 0x0000001f;
                     return src_a << src_b;
                 case ALUControl::SRL:
+                    src_b &= 0x0000001f;
                     return src_a >> src_b;
                 case ALUControl::SRA:
+                    src_b &= 0x0000001f;
                     return (int32_t)src_a >> src_b;
                 case ALUControl::SLT:
                     return ((int32_t)src_a < (int32_t)src_b);

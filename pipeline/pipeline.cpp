@@ -108,6 +108,10 @@ namespace pipeline {
         execute_register.next.data1 = modules::Multiplexer2<word_>{}((control_unit.opcode == 0b0010111),
                                                                 reg_file.getReadData1(),
                                                                      decode_stage_instr.pc_de);
+        // check if the instruction is LUI
+        execute_register.next.data1 = modules::Multiplexer2<word_>{}((control_unit.opcode == 0b0110111),
+                                                                     execute_register.next.data1,
+                                                                     0);
         execute_register.next.data2 = reg_file.getReadData2();
         execute_register.next.pc_de = decode_stage_instr.pc_de;
         execute_register.next.instr = decode_stage_instr.instr;
@@ -196,12 +200,13 @@ namespace pipeline {
         }
 
         auto execute_stage_instr = execute_register.getCurrent().instr;
+        auto instr_type = control_unit.getInstructionType();
         auto rs1 = utils::getRs1(execute_stage_instr);
         auto rs2 = utils::getRs2(execute_stage_instr);
         auto mem_wb_a = memory_register.getCurrent().wb_a;
 
         bool was_halted = false;
-        if (rs1 != 0) {
+        if (utils::hasRs1(instr_type) && rs1 != 0) {
             if (rs1 == mem_wb_a) {
                 hu_rs1 = BypassOptionsEncoding::MEM;
                 if (!memory_register.getCurrent().mem_to_reg) {
@@ -218,7 +223,7 @@ namespace pipeline {
             hu_rs1 = BypassOptionsEncoding::REG;
         }
 
-        if (rs2 != 0) {
+        if (utils::hasRs2(instr_type) && rs2 != 0) {
             if (rs2 == mem_wb_a) {
                 hu_rs2 = BypassOptionsEncoding::MEM;
                 if (!memory_register.getCurrent().mem_to_reg) {

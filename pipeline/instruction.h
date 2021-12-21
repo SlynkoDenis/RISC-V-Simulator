@@ -68,6 +68,15 @@ namespace pipeline::utils {
         }
     }
 
+    constexpr inline bool hasRs1(InstructionType type) {
+        return (type != InstructionType::UType && type != InstructionType::JType);
+    }
+
+    constexpr inline bool hasRs2(InstructionType type) {
+        return (type == InstructionType::RType || type == InstructionType::IType ||
+                type == InstructionType::SType || type == InstructionType::BType);
+    }
+
     struct ImmediateExtensionBlock {
         constexpr inline word_ operator ()(word_ instr) {
             auto instr_t = utils::getInstructionType(getOpcode(instr));

@@ -18,9 +18,13 @@ namespace pipeline {
     public:
         virtual ~ControlUnit() noexcept = default;
 
-        [[nodiscard]] auto getControlSignals() {
+        [[nodiscard]] auto getControlSignals() const {
             return std::make_tuple(is_jalr, wb_we, mem_we, mem_to_reg, brn_cond,
                                    jmp_cond, cmp_control, alu_src2, alu_op);
+        }
+
+        [[nodiscard]] auto getInstructionType() const {
+            return instr_type;
         }
 
         virtual void tick() {
@@ -45,10 +49,10 @@ namespace pipeline {
 
             mem_we = (opcode == 0b0100011);
 
-            auto instr_type = utils::getInstructionType(opcode);
+            instr_type = utils::getInstructionType(opcode);
             if (instr_type == utils::InstructionType::IType ||
                 instr_type == utils::InstructionType::SType ||
-                opcode == 0b0010111) {
+                instr_type == utils::InstructionType::UType) {
                 alu_src2 = true;
             } else {
                 alu_src2 = false;
@@ -62,7 +66,7 @@ namespace pipeline {
                         } else if (funct7 == 0b0100000) {
                             alu_op = ALUControl::SUB;
                         } else {
-                            throw std::logic_error("invalid funct7 for ADD/SUB with funct3 == 0: " +\
+                            throw std::invalid_argument("invalid funct7 for ADD/SUB with funct3 == 0: " +\
                                 std::to_string(funct7));
                         }
                         break;
@@ -84,7 +88,7 @@ namespace pipeline {
                         } else if (funct7 == 0b0100000) {
                             alu_op = ALUControl::SRA;
                         } else {
-                            throw std::logic_error("invalid funct7 for SRL/SRA with funct3 == 0: " +\
+                            throw std::invalid_argument("invalid funct7 for SRL/SRA with funct3 == 0: " +\
                                 std::to_string(funct7));
                         }
                         break;
@@ -95,7 +99,7 @@ namespace pipeline {
                         alu_op = ALUControl::AND;
                         break;
                     default:
-                        throw std::logic_error("invalid funct3: " + std::to_string(funct3));
+                        throw std::invalid_argument("invalid funct3: " + std::to_string(funct3));
                 }
             } else if (opcode == 0b0010011) {
                 switch (funct3) {
@@ -117,11 +121,30 @@ namespace pipeline {
                     case 0b111:
                         alu_op = ALUControl::AND;
                         break;
+                    case 0b001:
+                        if (funct7 == 0) {
+                            alu_op = ALUControl::SLL;
+                        } else {
+                            throw std::invalid_argument("invalid funct7 for SLLI op: "+\
+                                std::to_string(funct7));
+                        }
+                        break;
+                    case 0b101:
+                        if (funct7 == 0) {
+                            alu_op = ALUControl::SRL;
+                        } else if (funct7 == 0b0100000) {
+                            alu_op = ALUControl::SRA;
+                        } else {
+                            throw std::invalid_argument("invalid funct7 for SRLI/SRAI op: "+\
+                                std::to_string(funct7));
+                        }
+                        break;
                     default:
-                        throw std::logic_error("invalid funct3: " + std::to_string(funct3));
+                        throw std::invalid_argument("invalid funct3: " + std::to_string(funct3));
                 }
-            } else if (opcode == 0b0010111 || opcode == 0b1100111 ||
+            } else if (instr_type == utils::InstructionType::UType || opcode == 0b1100111 ||
                        opcode == 0b0000011 || opcode == 0b0100011) {
+                // addition is used for LUI, AUIPC, JALR, loads and stores
                 alu_op = ALUControl::ADD;
             } else {
                 alu_op = ALUControl::NOP;
@@ -189,6 +212,8 @@ namespace pipeline {
         modules::CmpControl cmp_control;
         bool alu_src2 = false;
         ALUControl alu_op = ALUControl::NOP;
+
+        utils::InstructionType instr_type;
     };
 }
 
