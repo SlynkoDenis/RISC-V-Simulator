@@ -73,7 +73,7 @@ namespace pipeline {
     };
 
     inline std::ostream& operator<<(std::ostream& os, const ExecuteState& execute_state) {
-        os << "funct3=" << std::hex << static_cast<word_>(execute_state.funct3);
+        os << "funct3=" << std::hex << static_cast<word_>(execute_state.funct3) << ", ";
         LOG_FIELD(execute_state, is_jalr);
         LOG_FIELD(execute_state, alu_op);
         LOG_FIELD(execute_state, alu_src2);
@@ -116,7 +116,7 @@ namespace pipeline {
         LOG_FIELD(memory_state, mem_to_reg);
         LOG_FIELD(memory_state, wb_we);
         LOG_FIELD(memory_state, jmp_cond);
-        os << "store_mode" << "=" << std::hex << static_cast<word_>(memory_state.store_mode);
+        os << "store_mode" << "=" << std::hex << static_cast<word_>(memory_state.store_mode) << ", ";
         LOG_FIELD(memory_state, write_data);
         LOG_FIELD(memory_state, alu_res);
         LOG_FIELD(memory_state, wb_a);
@@ -160,6 +160,8 @@ namespace pipeline {
         virtual void setProgramCounter(word_ pc);
 
         virtual void tick();
+
+        virtual void run();
 
 #ifdef DEBUG
         [[nodiscard]] virtual word_ getRegister(word_ addr) const {

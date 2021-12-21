@@ -233,6 +233,16 @@ namespace pipeline {
         memory_register.tick();
         write_back_register.tick();
     }
+
+    void Pipeline::run() {
+        try {
+            while (true) {
+                tick();
+            }
+        } catch (std::logic_error& e) {
+            std::cout << e.what() << std::endl;
+        }
+    }
 }
 
 /*

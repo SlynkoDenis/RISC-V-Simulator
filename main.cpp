@@ -38,13 +38,7 @@ int main() {
     const pipeline::word_ start_inst_addr = 16;
     pipeline::Pipeline cpu{instructions, start_inst_addr};
     cpu.setProgramCounter(start_inst_addr);
-    try {
-        while (true) {
-            cpu.tick();
-        }
-    } catch (std::logic_error& e) {
-        std::cout << e.what() << std::endl;
-    }
+    cpu.run();
 
     return 0;
 }

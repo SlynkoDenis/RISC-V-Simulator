@@ -24,7 +24,7 @@ namespace pipeline {
         }
 
         virtual void tick() {
-            if (opcode == 0b0001111 || opcode == 0b1110011) {
+            if (opcode == 0b0001111 || (opcode == 0b1110011 && funct3 != 0)) {
                 throw UnsupportedException("unsupported instruction: opcode == " +\
                     std::to_string(opcode));
             }
