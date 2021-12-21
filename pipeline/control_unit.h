@@ -4,6 +4,7 @@
 #include <tuple>
 #include "ebreak_exception.h"
 #include "instruction.h"
+#include "unsupported_instruction.h"
 #include "../modules/alu.h"
 #include "../modules/cmp.h"
 #include "../modules/common.h"
@@ -23,6 +24,10 @@ namespace pipeline {
         }
 
         virtual void tick() {
+            if (opcode == 0b0001111 || opcode == 0b1110011) {
+                throw UnsupportedException("unsupported instruction: opcode == " +\
+                    std::to_string(opcode));
+            }
             if (opcode == 0b1110011) {
                 throw EbreakException();
             }

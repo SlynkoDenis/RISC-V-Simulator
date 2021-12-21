@@ -24,7 +24,7 @@ namespace pipeline {
         program_counter.tick();
         hazardUnitTick();
 
-        debug();
+        DEBUG_LOG((*this));
     }
 
 #ifdef DEBUG
@@ -99,7 +99,10 @@ namespace pipeline {
         execute_register.next.jmp_cond = std::get<5>(tmp);
         execute_register.next.cmp_control = std::get<6>(tmp);
         execute_register.next.funct3 = control_unit.funct3;
-        execute_register.next.data1 = reg_file.getReadData1();
+        // check if the instruction is AUIPC
+        execute_register.next.data1 = modules::Multiplexer2<word_>{}((control_unit.opcode == 0b0010111),
+                                                                reg_file.getReadData1(),
+                                                                     decode_stage_instr.pc_de);
         execute_register.next.data2 = reg_file.getReadData2();
         execute_register.next.pc_de = decode_stage_instr.pc_de;
         execute_register.next.instr = decode_stage_instr.instr;
@@ -117,9 +120,6 @@ namespace pipeline {
                                                    bp_mem,
                                                    write_back_register.getCurrent().wb_d);
         pc_disp = utils::ImmediateExtensionBlock{}(exec_reg_cur.instr);
-#ifdef DEBUG
-        std::cout << "======================== imm == " << pc_disp << std::endl;
-#endif
         auto src_b = modules::Multiplexer2<word_>{}(exec_reg_cur.alu_src2,
                                                     rs2v,
                                                     pc_disp);
@@ -137,14 +137,11 @@ namespace pipeline {
         memory_register.next.jmp_cond = exec_reg_cur.jmp_cond;
         memory_register.next.write_data = rs2v;
         memory_register.next.alu_res = modules::ALU{}(exec_reg_cur.alu_op, src_a, src_b);
-#ifdef DEBUG
-        std::cout << "======================== ALU(" << exec_reg_cur.alu_op;
-        std::cout << ", " << src_a << ", " << src_b << ") == " << memory_register.next.alu_res << std::endl;
-#endif
         memory_register.next.wb_a = utils::getRd(exec_reg_cur.instr);
-        // if the instruction is jalr, then pc_disp must be changed
         if (exec_reg_cur.is_jalr) {
+            // if the instruction is jalr, then pc_disp must be changed
             pc_disp = memory_register.next.alu_res;
+            pc_disp &= 0xfffffffe;
         }
         decode_register.next.v_de = pc_r;
     }

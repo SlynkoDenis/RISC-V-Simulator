@@ -14,8 +14,8 @@ namespace modules {
         explicit InstrMemUnit(const std::vector<word_>& instructions, word_ start_address) : address(0) {
             if (start_address % sizeof(word_)) {
                 throw AlignmentException("start_address: " +\
-                                         std::to_string(start_address) +\
-                                         " % " + std::to_string(sizeof(word_)) + " != 0");
+                    std::to_string(start_address) +\
+                    " % " + std::to_string(sizeof(word_)) + " != 0");
             }
             std::copy(instructions.cbegin(), instructions.cend(),
                       memory.begin() + start_address / sizeof(word_));

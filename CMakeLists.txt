@@ -24,7 +24,7 @@ function(add_git_submodule dir)
 endfunction(add_git_submodule)
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE Debug)
 endif()
 
 string(TOLOWER ${CMAKE_BUILD_TYPE} LOWER_BUILD_TYPE)

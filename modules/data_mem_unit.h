@@ -106,7 +106,7 @@ namespace modules {
             // LH and LB commands can read 16 and 8-bit values
             if (address % sizeof(byte_)) {
                 throw AlignmentException("data write invalid alignment - address="+\
-                                             std::to_string(address));
+                    std::to_string(address));
             }
             return loadValue();
         }
